@@ -11,7 +11,11 @@ router = APIRouter(
 
 @router.post("/received")
 async def email_received(request: EmailRequest):
-    """이메일 전송 요청 API"""
+    """
+    이메일 전송 요청 API
+    ## Args:
+        - request: 이메일 요청(이메일 주소, 제목, 내용, 사용자 이름)
+    """
     try:
         # task_id 생성
         task_id = str(uuid.uuid4())
