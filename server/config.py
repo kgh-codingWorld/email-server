@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 # .env 파일 로드
 load_dotenv()
 
+# smtp 설정값 가져오기
 SMTP_HOST=os.getenv("SMTP_HOST")
 SMTP_PORT=int(os.getenv("SMTP_PORT"))
 SMTP_USER=os.getenv("SMTP_USER")

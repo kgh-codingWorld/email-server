@@ -11,10 +11,14 @@ router = APIRouter(
 async def get_email_result(task_id:str=Query(...)):
     """
     이메일 요청 처리 상태 조회 API
+    ## Args:
+        - task_id: 요청 받은 task ID
     """
+    # 요청 큐에서 저장한 값(응답 보내려고 저장함)에서 task_id 가져오기
     result = response_dict.get(task_id)
-    logger.info(f"📌task_id: {task_id}")
-    logger.info(f"📌result: {result}")
+    logger.info(f"task_id: {task_id}")
+    logger.info(f"result: {result}")
+    # result가 none일 때(response_dict가 none 또는 task_id가 none)
     if result is None:
         return {
             "status":"processing",

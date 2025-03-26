@@ -15,4 +15,4 @@ COPY . .
 EXPOSE 8000
 
 # 앱 실행 (uvicorn 사용)
-CMD ["uvicorn", "server.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "server.main:app", "--host", "127.0.0.1", "--port", "8000"]
