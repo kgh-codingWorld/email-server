@@ -44,7 +44,7 @@ def send_email(to:EmailStr,subject:str,body:str,username:str):
         msg["From"] = SMTP_USER
         msg["To"] = to
         msg["Username"] = username
-        
+
         # SMTP 서버에 연결 및 로그인
         with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
             server.set_debuglevel(1)
@@ -53,8 +53,9 @@ def send_email(to:EmailStr,subject:str,body:str,username:str):
             server.send_message(msg) # 이메일 전송
             logger.info(f"✅{to}에게 이메일 보내기")
             
-    except smtplib.SMTPAuthenticationError:
-        logger.error("SMTP 인증 실패 - 앱 비밀번호 확인 필요")
+    except smtplib.SMTPAuthenticationError as e:
+        logger.error(f"smtp 인증실패&&&&&&&&&&&&&&&&&: {e}")
+        raise Exception("SMTP 인증 실패") from e
     except smtplib.SMTPConnectError:
         logger.error("SMTP 서버 연결 실패 - 인터넷 상태 확인")
     except smtplib.SMTPRecipientsRefused as e:
