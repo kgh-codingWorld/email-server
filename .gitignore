@@ -5,14 +5,12 @@
 __pycache__/
 *.pyc
 *.pyo
-
 # venv
 email-server/
 .env
-
 .pytest_cache
-
 # db
 #database/
 # 로컬 설정 파일
-#docker-compose.yaml
+docker-compose.yaml
+.vscode
