@@ -1,25 +1,31 @@
 import asyncio
-from asyncio import Queue
+import json
+from redis.asyncio import Redis
 from server.log.logger import logger
 from server.utils.email_util import preprocess_email, send_email_async
 
-# 비동기 큐
-email_queue = Queue()
-response_queue = Queue()
+# Redis 연결
+redis = Redis(host="localhost", port=6379, db=0, decode_responses=True)
 
-# 응답 저장 공간(임시 캐시)
-response_dict = {}
+# Redis 키 상수
+EMAIL_QUEUE = "email_queue"
+TASK_RESULT_PREFIX = "task_status:"
 
 # 이메일 전송 워커
 async def email_worker():
     """이메일 전송 워커 함수"""
     while True:
-        # 비동기 큐에서 정보 가져옴
-        email_data = await email_queue.get()
-        task_id = email_data["task_id"]
-        retry_cnt = 0
-
         try:
+            task = await redis.blpop(EMAIL_QUEUE, timeout=5)
+            if not task:
+                continue
+
+            # 비동기 큐에서 정보 가져옴
+            _, raw_data = task
+            email_data = json.loads(raw_data)
+            task_id = email_data["task_id"]
+            retry_cnt = 0
+
             logger.info(f"{task_id} 이메일 전송 요청 수신")
             logger.info(f"{email_data['to']}에게 이메일 전송 시작")
 
@@ -41,14 +47,14 @@ async def email_worker():
                     )
 
                     logger.info(f"{email_data['to']} 전송 성공")
-                    result_payload = {
-
-                        "status": "success",
-                        "to": email_data["to"],
-                        "attempts": retry_cnt
-                    }
-                    logger.debug(f"응답 큐에 넣기 전 payload: ({task_id}, {result_payload})")
-                    await response_queue.put((task_id, result_payload))
+                    await redis.set(
+                        TASK_RESULT_PREFIX + task_id,
+                        json.dumps({
+                            "status":"success",
+                            "to":email_data["to"],
+                            "attempts":retry_cnt
+                        })
+                    )
                     break
 
                 except Exception as e:
@@ -56,49 +62,34 @@ async def email_worker():
                     await asyncio.sleep(2)
 
             else:
-                result_payload = {
-                    "status": "Failed",
-                    "to": email_data["to"],
-                    "reason": "전송 3회 실패",
-                    "attempts": retry_cnt
-                }
-                logger.debug(f"응답 큐에 넣기 전 payload: ({task_id}, {result_payload})")
-                await response_queue.put((task_id, result_payload))
+                await redis.set(
+                    TASK_RESULT_PREFIX + task_id,
+                    json.dumps({
+                        "status":"failed",
+                        "to":email_data["to"],
+                        "reason":"전송 3회 실패",
+                        "attempts":retry_cnt
+                    })
+                )
                 logger.error(f"{task_id} 전송 최종 실패 (3회 시도 완료)")
-
+            
         except Exception as e:
-            result_payload = {
-                "status": "error",
-                "to": email_data.get("to", None),
-                "reason": str(e)
-            }
-            logger.debug(f"응답 큐에 넣기 전 payload: ({task_id}, {result_payload})")
-            await response_queue.put((task_id, result_payload))
-            logger.error(f"[{task_id}] 처리 중 예외 발생: {e}")
+            logger.error(f"워커 처리 중 예외: {e}")
 
-        finally:
-            email_queue.task_done()
-
-# 응답 워커
-async def response_worker():
-    """이메일 전송에 대한 응답 워커 함수"""
-    while True:
-        result_data = await response_queue.get()
-        logger.debug(f"큐에서 꺼낸 응답: {result_data}")
-        try:
-            task_id, result = result_data
-            response_dict[task_id] = result
-            logger.info(f"응답 큐 처리 완료: task_id={task_id}, 결과 저장")
-        except Exception as e:
-            logger.error(f"응답 언팩 실패: {e}, 원본: {result_data}")
-        finally:
-            response_queue.task_done()
-
-# pending
-def register_pending_status(task_id:str,to_email:str):
-    """pending 상태 등록"""
-    response_dict[task_id] = {
-        "status":"pending",
-        "to":to_email
-    }
+async def register_pending_status(task_id:str,to_email:str):
+    """상태 등록 함수"""
+    await redis.set(
+        TASK_RESULT_PREFIX + task_id,
+        json.dumps({
+            "status":"pending",
+            "to":to_email
+        })
+    )
     logger.info(f"{task_id} 상태 등록: pending")
+
+async def get_response_status(task_id:str):
+    """응답 조회 함수(API에서 사용)"""
+    raw = await redis.get(TASK_RESULT_PREFIX + task_id)
+    if raw:
+        return json.loads(raw)
+    return None

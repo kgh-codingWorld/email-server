@@ -1,8 +1,9 @@
 import uuid
+import json
 from fastapi import APIRouter, HTTPException
 from server.log.logger import logger
 from server.models.email_DTO import EmailRequest
-from server.utils.worker_util import email_queue, register_pending_status
+from server.utils.worker_util import redis, register_pending_status
 
 router = APIRouter(
     prefix="/api/v1/email",
@@ -25,13 +26,13 @@ async def email_received(request: EmailRequest):
         email_data["task_id"] = task_id
 
         # pending 상태 등록
-        register_pending_status(task_id, email_data["to"])
-
+        await register_pending_status(task_id, email_data["to"])
         # 큐에 등록
-        await email_queue.put(email_data)
+        await redis.rpush("email_queue", json.dumps(email_data))
         logger.info(f"{task_id} 이메일 전송 요청 수신 및 큐 등록 완료")
 
         return {"task_id":task_id,"status":"queued"}
+    
     except Exception as e:
         logger.error(f"[요청 처리 실패] {e}")
         raise HTTPException(
