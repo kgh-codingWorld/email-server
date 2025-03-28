@@ -14,6 +14,7 @@ response_dict = {}
 async def email_worker():
     """이메일 전송 워커 함수"""
     while True:
+        # 비동기 큐에서 정보 가져옴
         email_data = await email_queue.get()
         task_id = email_data["task_id"]
         retry_cnt = 0
@@ -26,6 +27,7 @@ async def email_worker():
             email_data = preprocess_email(email_data)
             logger.debug(f"전처리 결과: {email_data}")
 
+            # 3회 재시도
             while retry_cnt < 3:
                 try:
                     retry_cnt += 1
@@ -40,6 +42,7 @@ async def email_worker():
 
                     logger.info(f"{email_data['to']} 전송 성공")
                     result_payload = {
+
                         "status": "success",
                         "to": email_data["to"],
                         "attempts": retry_cnt
@@ -62,6 +65,7 @@ async def email_worker():
                 logger.debug(f"응답 큐에 넣기 전 payload: ({task_id}, {result_payload})")
                 await response_queue.put((task_id, result_payload))
                 logger.error(f"{task_id} 전송 최종 실패 (3회 시도 완료)")
+
 
         except Exception as e:
             result_payload = {
