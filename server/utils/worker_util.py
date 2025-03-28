@@ -1,11 +1,8 @@
 import asyncio
 import json
-from redis.asyncio import Redis
+from server.configs.redis_client import redis
 from server.log.logger import logger
 from server.utils.email_util import preprocess_email, send_email_async
-
-# Redis 연결
-redis = Redis(host="localhost", port=6379, db=0, decode_responses=True)
 
 # Redis 키 상수
 EMAIL_QUEUE = "email_queue"

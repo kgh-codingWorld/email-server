@@ -3,7 +3,8 @@ import json
 from fastapi import APIRouter, HTTPException
 from server.log.logger import logger
 from server.models.email_DTO import EmailRequest
-from server.utils.worker_util import redis, register_pending_status
+from server.utils.worker_util import register_pending_status
+from server.configs.redis_client import redis
 
 router = APIRouter(
     prefix="/api/v1/email",
