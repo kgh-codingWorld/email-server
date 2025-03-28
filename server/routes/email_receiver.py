@@ -2,7 +2,7 @@ import uuid
 from fastapi import APIRouter, HTTPException
 from server.log.logger import logger
 from server.models.email_DTO import EmailRequest
-from server.utils.worker_util import email_queue
+from server.utils.worker_util import email_queue, register_pending_status
 
 router = APIRouter(
     prefix="/api/v1/email",
@@ -23,6 +23,9 @@ async def email_received(request: EmailRequest):
         # 요청 데이터 구성
         email_data = request.model_dump()
         email_data["task_id"] = task_id
+
+        # pending 상태 등록
+        register_pending_status(task_id, email_data["to"])
 
         # 큐에 등록
         await email_queue.put(email_data)
