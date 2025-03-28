@@ -1,12 +1,11 @@
 from fastapi import FastAPI
-
+# 예외처리
 from fastapi.exceptions import RequestValidationError
 from server.error.email_exception_handler import validation_exception_handler
-
+# 라우터
 from server.routes import email_receiver, email_result
-
+# lifespan
 from server.configs.lifespan import lifespan
-
 
 app = FastAPI(openapi_url="/openapi.json", lifespan=lifespan)
 

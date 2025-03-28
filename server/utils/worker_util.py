@@ -66,7 +66,6 @@ async def email_worker():
                 await response_queue.put((task_id, result_payload))
                 logger.error(f"{task_id} 전송 최종 실패 (3회 시도 완료)")
 
-
         except Exception as e:
             result_payload = {
                 "status": "error",

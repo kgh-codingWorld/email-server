@@ -1,16 +1,17 @@
 import re
 from aiosmtplib import send
 from email.message import EmailMessage
-from fastapi import HTTPException
-from pydantic import EmailStr
-from email.mime.text import MIMEText
 from server.config import SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, EMAIL_FORCE_FAIL
-from server import config
-from server.log.logger import logger
-from fastapi.exceptions import RequestValidationError
 
 def build_email_message(to:str,subject:str,body:str,username:str)->EmailMessage:
-    """이메일 메시지 생성 함수"""
+    """
+    이메일 메시지 생성 함수
+    ## Args:
+        - to: 이메일 주소
+        - subject: 제목
+        - body: 본문
+        - username: 사용자 이름
+    """
     message = EmailMessage()
     message["From"] = SMTP_USER
     message["To"] = to
@@ -19,6 +20,14 @@ def build_email_message(to:str,subject:str,body:str,username:str)->EmailMessage:
     return message
 
 async def send_email_async(to:str,subject:str,body:str,username:str):
+    """
+    비동기로 이메일 전송 함수
+    ## Args:
+        - to: 이메일 주소
+        - subject: 제목
+        - body: 본문
+        - username: 사용자 이름
+    """
     message = build_email_message(to,subject,body,username)
     await send(
         message,
